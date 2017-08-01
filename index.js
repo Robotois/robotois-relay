@@ -8,7 +8,6 @@ function RelayModule(port) {
   const selft = this;
   this.relay = new RModule(port);
   this.relayStatus = 0;
-  // this.blinkStatus = false;
   this.blinkInterval = false;
 
   process.on('SIGINT', () => {
@@ -27,6 +26,7 @@ RelayModule.prototype.write = function write(relayValue) {
 
 RelayModule.prototype.blink = function blink() {
   if (!this.blinkInterval) {
+    this.write(1);
     this.blinkInterval = setInterval(() => {
       this.toggle();
     }, 1000); // cambiar estado cada 1000ms
