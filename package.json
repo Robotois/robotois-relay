@@ -1,6 +1,6 @@
 {
   "name": "robotois-relay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,11 @@
       "url": "http://armando.mx/"
     }
   ],
+  "homepage": "https://github.com/Robotois/robotois-relay",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Robotois/robotois-relay.git"
+  },
   "license": "ISC",
   "dependencies": {
     "bindings": "^1.2.1"
