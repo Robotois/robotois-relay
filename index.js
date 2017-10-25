@@ -19,14 +19,45 @@ function RelayModule(port) {
   });
 }
 
+RelayModule.prototype.publishNow = function publishNow() {
+  this.mqttClient.publish(
+    this.myTopic,
+    this.blinkInterval ? 'blink' : this.relayStatus.toString(),
+  );
+};
+
+RelayModule.prototype.setMqttClient = function setMqttClient(mqttConfig) {
+  this.mqttClient = mqttConfig.mqttClient;
+  this.myTopic = `digitalOutputs/relay${mqttConfig.instance}`;
+};
+
 RelayModule.prototype.write = function write(relayValue) {
-  this.relayStatus = relayValue;
-  this.relay.write(relayValue);
+  switch (relayValue) {
+    case 0:
+      this.turnOff();
+      break;
+    case 1:
+      this.turnOn();
+      break;
+    default:
+      this.turnOff();
+  }
+};
+
+RelayModule.prototype.setValue = function setValue(value, notify) {
+  this.relay.write(value);
+  this.relayStatus = value;
+  if (this.mqttClient && notify) {
+    this.mqttClient.publish(this.myTopic, value.toString());
+  }
 };
 
 RelayModule.prototype.blink = function blink() {
   if (!this.blinkInterval) {
-    this.write(1);
+    if (this.mqttClient) {
+      this.mqttClient.publish(this.myTopic, 'blink');
+    }
+    this.setValue(1, false);
     this.blinkInterval = setInterval(() => {
       this.toggle();
     }, 1000); // cambiar estado cada 1000ms
@@ -34,22 +65,40 @@ RelayModule.prototype.blink = function blink() {
 };
 
 RelayModule.prototype.turnOn = function turnOn() {
-  clearInterval(this.blinkInterval);
-  this.blinkInterval = false;
-  this.write(1);
+  if (this.blinkInterval) {
+    clearInterval(this.blinkInterval);
+    this.blinkInterval = false;
+    // If it is blinking it could be ON already when trying to set the ON state.
+    // This is done to force the MQTT notifications that it has changed from BLINK to ON
+    this.setValue(1, true);
+    return;
+  }
+
+  if (this.relayStatus === 0) {
+    this.setValue(1, true);
+  }
 };
 
 RelayModule.prototype.turnOff = function turnOff() {
-  clearInterval(this.blinkInterval);
-  this.blinkInterval = false;
-  this.write(0);
+  if (this.blinkInterval) {
+    clearInterval(this.blinkInterval);
+    this.blinkInterval = false;
+    // If it is blinking it could be OFF already when trying to set the OFF state.
+    // This is done to force the MQTT notifications that it has changed from BLINK to OFF
+    this.setValue(0, true);
+    return;
+  }
+
+  if (this.relayStatus === 1) {
+    this.setValue(0, true);
+  }
 };
 
 RelayModule.prototype.toggle = function toggle() {
   if (this.relayStatus === 1) {
-    this.write(0);
+    this.setValue(0, false);
   } else {
-    this.write(1);
+    this.setValue(1, false);
   }
 };
 
